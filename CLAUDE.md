@@ -19,27 +19,21 @@ This project uses an automated loop engineering SDLC. The workflow is in `.claud
 
 ```
 Workflow({ name: 'sdlc-loop', args: {
-  projectNumber: YOUR_PROJECT_NUMBER,
+  projectNumber: 1,
   owner: 'jm85martins',
   repo: 'todo-app',
-  specFieldId: 'SPEC_FIELD_ID',
-  statusFieldId: 'STATUS_FIELD_ID',
+  specFieldId: 'PVTF_lAHOAIQdQ84BcYfJzhXB1vg',
+  statusFieldId: 'PVTSSF_lAHOAIQdQ84BcYfJzhXBvtY',
   statusOptions: {
-    todo: 'TODO_OPTION_ID',
-    discovery: 'DISCOVERY_OPTION_ID',
-    readyToBuild: 'READY_OPTION_ID',
-    inProgress: 'IN_PROGRESS_OPTION_ID',
-    review: 'REVIEW_OPTION_ID',
-    qa: 'QA_OPTION_ID',
-    done: 'DONE_OPTION_ID',
+    todo:         '61e4505c',
+    discovery:    'b2945f80',
+    readyToBuild: '47fc9ee4',
+    inProgress:   'df73e18b',
+    review:       '98236657',
+    qa:           'a19c13b3',
+    done:         '189078dd',
   }
 }})
-```
-
-Get IDs with:
-```
-gh project list --owner jm85martins
-gh project field-list PROJECT_NUMBER --owner jm85martins --format json
 ```
 
 ### Discovery Agent
