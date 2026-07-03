@@ -47,11 +47,11 @@ const TASK_SCHEMA = {
 const DISCOVERY_SCHEMA = {
   type: 'object',
   properties: {
-    summary:            { type: 'string', description: 'One paragraph plain-English summary of the change' },
-    technicalSpec:      { type: 'string', description: 'Detailed implementation plan in markdown' },
-    filesToModify:      { type: 'array', items: { type: 'string' }, description: 'Relative file paths' },
+    summary:            { type: 'string' },
+    technicalSpec:      { type: 'string' },
+    filesToModify:      { type: 'array', items: { type: 'string' } },
     acceptanceCriteria: { type: 'array', items: { type: 'string' } },
-    risks:              { type: 'string', description: 'Known risks or unknowns' },
+    risks:              { type: 'string' },
   },
   required: ['summary', 'technicalSpec', 'acceptanceCriteria', 'filesToModify'],
 }
@@ -60,8 +60,8 @@ const REVIEW_SCHEMA = {
   type: 'object',
   properties: {
     approved: { type: 'boolean' },
-    findings: { type: 'array', items: { type: 'string' }, description: 'Specific issues found' },
-    verdict:  { type: 'string', description: 'Short summary of decision' },
+    findings: { type: 'array', items: { type: 'string' } },
+    verdict:  { type: 'string' },
   },
   required: ['approved', 'verdict', 'findings'],
 }
@@ -79,32 +79,24 @@ const QA_SCHEMA = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const moveItem = (itemId, statusOptionId, label) =>
+// Returns the gh CLI command string to move the kanban card — embed this as
+// step 1 in each agent prompt so the board updates the moment the agent starts.
+const moveCmd = (itemId, statusOptionId) =>
+  `gh project item-edit --id "${itemId}" --project-id ${projectNumber} --field-id "${statusFieldId}" --single-select-option-id "${statusOptionId}"`
+
+// Fire-and-forget — comments are informational and must not block phase work.
+const postComment = (issueNumber, body) => {
   agent(
-    `Move a GitHub Projects item to a new status column.
+    `Post this comment on GitHub issue #${issueNumber} in repo ${owner}/${repo}.
+    Write the body to a temp file to avoid escaping issues, then post:
 
-    Run this command:
-      gh project item-edit \\
-        --id "${itemId}" \\
-        --project-id ${projectNumber} \\
-        --field-id "${statusFieldId}" \\
-        --single-select-option-id "${statusOptionId}"
-
-    Confirm it succeeded or report the error.`,
-    { label, phase: 'Pick Task' }
-  )
-
-const postComment = (issueNumber, body) =>
-  agent(
-    `Post a comment on GitHub issue #${issueNumber} in repo ${owner}/${repo}.
-
-    Write the body to a temp file first to avoid shell escaping issues, then post:
-      cat > /tmp/comment-body.md << 'ENDOFBODY'
-    ${body}
-      ENDOFBODY
-      gh issue comment ${issueNumber} --repo ${owner}/${repo} --body-file /tmp/comment-body.md`,
+    cat > /tmp/sdlc-comment.md << 'ENDOFBODY'
+${body}
+ENDOFBODY
+    gh issue comment ${issueNumber} --repo ${owner}/${repo} --body-file /tmp/sdlc-comment.md`,
     { label: 'comment-' + issueNumber, phase: 'Pick Task' }
   )
+}
 
 // ── Phase 1: Pick Task ────────────────────────────────────────────────────────
 phase('Pick Task')
@@ -130,7 +122,6 @@ if (!task || !task.found) {
 }
 
 log(`Picked: #${task.issueNumber} — ${task.issueTitle}`)
-await moveItem(task.itemId, statusOptions.discovery, 'move-to-discovery')
 
 // ── Phase 2: Discovery ────────────────────────────────────────────────────────
 phase('Discovery')
@@ -139,19 +130,27 @@ log(`Running discovery for issue #${task.issueNumber}...`)
 const spec = await agent(
   `You are a discovery and research agent for a software project.
 
-  Analyze this GitHub issue and produce a concrete technical spec that a builder agent
-  can implement without needing additional context.
+  FIRST — move the kanban card to Discovery immediately before doing any other work:
+    ${moveCmd(task.itemId, statusOptions.discovery)}
+
+  Then analyze this GitHub issue and produce a concrete technical spec that a builder
+  agent can implement without needing additional context.
 
   Issue #${task.issueNumber}: ${task.issueTitle}
   Description: ${task.issueBody || '(no description provided)'}
   Repo: ${owner}/${repo} (local path: /Users/jorgemartins/devs/todo-app)
 
   Steps:
-  1. Read the codebase: src/, __tests__/, package.json, CLAUDE.md
-  2. Understand existing patterns — components, state management, data flow
-  3. Identify exactly which files need to change and how
-  4. Write acceptance criteria that are specific and testable
-  5. Note any risks or ambiguities
+  1. Move card to Discovery (command above)
+  2. Read the codebase: src/, __tests__/, package.json, CLAUDE.md
+  3. Understand existing patterns — components, state management, data flow
+  4. Identify exactly which files need to change and how
+  5. Write acceptance criteria that are specific and testable
+  6. Note any risks or ambiguities
+  7. Write the spec to the project Spec field:
+       gh project item-edit --id "${task.itemId}" --project-id ${projectNumber} --field-id "${specFieldId}" --text "SPEC_CONTENT"
+  8. Move card to Ready to Build:
+       ${moveCmd(task.itemId, statusOptions.readyToBuild)}
 
   Be as specific as possible — include exact function names, component structures,
   prop types (TypeScript), and test cases to add. The builder sees ONLY your output.`,
@@ -160,33 +159,7 @@ const spec = await agent(
 
 log(`Discovery done. Files: ${spec.filesToModify.join(', ')}`)
 
-await agent(
-  `Write text to a GitHub Projects custom Spec field.
-
-  Write the spec to a temp file first, then run:
-    gh project item-edit \\
-      --id "${task.itemId}" \\
-      --project-id ${projectNumber} \\
-      --field-id "${specFieldId}" \\
-      --text "$(cat /tmp/spec-content.txt)"
-
-  First write /tmp/spec-content.txt with this content:
-    Summary: ${spec.summary}
-
-    Technical Spec:
-    ${spec.technicalSpec}
-
-    Files to Modify:
-    ${spec.filesToModify.map(f => '- ' + f).join('\n')}
-
-    Acceptance Criteria:
-    ${spec.acceptanceCriteria.map((c, i) => (i + 1) + '. ' + c).join('\n')}
-
-    Risks: ${spec.risks || 'None identified'}`,
-  { label: 'write-spec-field', phase: 'Discovery' }
-)
-
-await postComment(task.issueNumber,
+postComment(task.issueNumber,
   `## Discovery complete
 
 **Summary:** ${spec.summary}
@@ -207,11 +180,8 @@ ${spec.risks || 'None identified'}
 _Discovery Agent_`
 )
 
-await moveItem(task.itemId, statusOptions.readyToBuild, 'move-to-ready')
-
 // ── Phase 3–5: Build → Review → QA loop ──────────────────────────────────────
 phase('Build')
-await moveItem(task.itemId, statusOptions.inProgress, 'move-to-in-progress')
 
 const branchName = 'feature/issue-' + task.issueNumber
 let prUrl = null
@@ -233,6 +203,9 @@ while (iteration < MAX_ITERATIONS) {
   const buildOutput = await agent(
     `You are a builder agent. Implement this GitHub issue as production-ready code.
 
+    FIRST — move the kanban card to In Progress immediately before doing any other work:
+      ${moveCmd(task.itemId, statusOptions.inProgress)}
+
     Issue #${task.issueNumber}: ${task.issueTitle}
     Branch: ${branchName}
     Local repo: /Users/jorgemartins/devs/todo-app
@@ -248,20 +221,21 @@ while (iteration < MAX_ITERATIONS) {
     ${fixContext}
 
     Steps:
-    1. cd /Users/jorgemartins/devs/todo-app
+    1. Move card to In Progress (command above)
+    2. cd /Users/jorgemartins/devs/todo-app
     ${iteration === 1
-      ? '2. git checkout main && git pull\n    3. git checkout -b ' + branchName
-      : '2. git checkout ' + branchName}
-    4. Read each file before editing it
-    5. Implement all changes — fix every issue listed in ISSUES TO FIX if present
-    6. Follow existing code conventions exactly
-    7. Run: npm test — fix any failures before continuing
-    8. git add <only the changed files>
-    9. git commit -m "${iteration === 1 ? 'feat' : 'fix'}: ${task.issueTitle} (closes #${task.issueNumber})"
-    10. git push -u origin ${branchName}
+      ? '3. git checkout main && git pull\n    4. git checkout -b ' + branchName
+      : '3. git checkout ' + branchName}
+    5. Read each file before editing it
+    6. Implement all changes — fix every issue in ISSUES TO FIX if present
+    7. Follow existing code conventions exactly
+    8. Run: npm test — fix any failures before continuing
+    9. git add <only the changed files>
+    10. git commit -m "${iteration === 1 ? 'feat' : 'fix'}: ${task.issueTitle} (closes #${task.issueNumber})"
+    11. git push -u origin ${branchName}
     ${prUrl === null
-      ? '11. gh pr create --repo ' + owner + '/' + repo + ' --title "' + task.issueTitle + '" --body "Closes #' + task.issueNumber + '\n\n## Acceptance Criteria\n\n' + spec.acceptanceCriteria.map(c => '- [ ] ' + c).join('\\n') + '"\n    12. Print the PR URL'
-      : '11. PR already exists at ' + prUrl + ' — push fixes to the existing branch, no new PR needed.'}
+      ? '12. gh pr create --repo ' + owner + '/' + repo + ' --title "' + task.issueTitle + '" --body "Closes #' + task.issueNumber + '\n\n## Acceptance Criteria\n\n' + spec.acceptanceCriteria.map(c => '- [ ] ' + c).join('\\n') + '"\n    13. Print the PR URL'
+      : '12. PR already exists at ' + prUrl + ' — push fixes to the existing branch, no new PR needed.'}
 
     Do not skip tests. Do not add changes beyond the spec.`,
     { label: 'build-iter-' + iteration, phase: 'Build', isolation: 'worktree' }
@@ -270,14 +244,13 @@ while (iteration < MAX_ITERATIONS) {
   if (prUrl === null) {
     prUrl = await agent(
       `Extract the GitHub PR URL from this text. Return ONLY the URL (https://github.com/...), nothing else.
-
       Text: ${buildOutput}`,
       { label: 'extract-pr-url', phase: 'Build' }
     )
     log('PR opened: ' + prUrl)
   }
 
-  await postComment(task.issueNumber,
+  postComment(task.issueNumber,
     iteration === 1
       ? `## Build complete
 
@@ -298,14 +271,15 @@ PR updated: ${prUrl}
 _Builder Agent_`
   )
 
-  await moveItem(task.itemId, statusOptions.review, 'move-to-review')
-
   // ── Review ─────────────────────────────────────────────────────────────────
   phase('Review')
   log('Reviewing ' + prUrl + ' (iteration ' + iteration + ')...')
 
   const review = await agent(
     `You are a code review agent. Review this pull request rigorously.
+
+    FIRST — move the kanban card to Review immediately before doing any other work:
+      ${moveCmd(task.itemId, statusOptions.review)}
 
     PR: ${prUrl}
     Issue: #${task.issueNumber} — ${task.issueTitle}
@@ -316,15 +290,16 @@ _Builder Agent_`
     ${spec.acceptanceCriteria.map((c, i) => (i + 1) + '. ' + c).join('\n')}
 
     Steps:
-    1. Get PR number: gh pr view "${prUrl}" --json number -q .number
-    2. Read the full diff: gh pr diff PR_NUMBER --repo ${owner}/${repo}
-    3. Read each modified file in full for context
-    4. Check each acceptance criterion — pass or fail with specifics
-    5. Look for: logic bugs, missing error handling, security issues, missing tests, style violations
-    6. Post your review:
-       gh pr review PR_NUMBER --repo ${owner}/${repo} --approve -b "COMMENT"
-       or
-       gh pr review PR_NUMBER --repo ${owner}/${repo} --request-changes -b "COMMENT"
+    1. Move card to Review (command above)
+    2. Get PR number: gh pr view "${prUrl}" --json number -q .number
+    3. Read the full diff: gh pr diff PR_NUMBER --repo ${owner}/${repo}
+    4. Read each modified file in full for context
+    5. Check each acceptance criterion — pass or fail with specifics
+    6. Look for: logic bugs, missing error handling, security issues, missing tests, style violations
+    7. Post your review:
+         gh pr review PR_NUMBER --repo ${owner}/${repo} --approve -b "COMMENT"
+         or
+         gh pr review PR_NUMBER --repo ${owner}/${repo} --request-changes -b "COMMENT"
 
     Approve only when ALL criteria pass and there are no blocking issues.`,
     { label: 'review-iter-' + iteration, phase: 'Review', schema: REVIEW_SCHEMA }
@@ -332,7 +307,7 @@ _Builder Agent_`
 
   log('Review verdict (iter ' + iteration + '): ' + review.verdict)
 
-  await postComment(task.issueNumber,
+  postComment(task.issueNumber,
     review.approved
       ? `## Code review passed (iteration ${iteration})
 
@@ -357,12 +332,9 @@ _Review Agent_`
     previousFindings = review.findings
     if (iteration < MAX_ITERATIONS) {
       log('Changes requested. Retrying build (iteration ' + (iteration + 1) + ')...')
-      await moveItem(task.itemId, statusOptions.inProgress, 'bounce-to-in-progress')
       continue
     }
-    log('Max iterations reached. Escalating to manual.')
-    await moveItem(task.itemId, statusOptions.todo, 'escalate-to-todo')
-    await postComment(task.issueNumber,
+    postComment(task.issueNumber,
       `## Escalated to manual after ${MAX_ITERATIONS} iterations
 
 The automated loop could not resolve all review findings within ${MAX_ITERATIONS} attempts.
@@ -374,15 +346,19 @@ ${review.findings.map(f => '- ' + f).join('\n')}
 ---
 _SDLC Orchestrator_`
     )
+    // Move back to Todo for manual pickup
+    agent(moveCmd(task.itemId, statusOptions.todo), { label: 'escalate-to-todo', phase: 'Review' })
     return { status: 'escalated', issue: task.issueNumber, pr: prUrl, findings: review.findings }
   }
 
   // ── QA ─────────────────────────────────────────────────────────────────────
   phase('QA')
-  await moveItem(task.itemId, statusOptions.qa, 'move-to-qa')
 
   const qa = await agent(
     `You are a QA agent. Validate this implementation end-to-end.
+
+    FIRST — move the kanban card to QA immediately before doing any other work:
+      ${moveCmd(task.itemId, statusOptions.qa)}
 
     PR: ${prUrl}
     Issue: #${task.issueNumber} — ${task.issueTitle}
@@ -392,15 +368,16 @@ _SDLC Orchestrator_`
     ${spec.acceptanceCriteria.map((c, i) => (i + 1) + '. ' + c).join('\n')}
 
     Steps:
-    1. Get PR number: gh pr view "${prUrl}" --json number -q .number
-    2. Check out the branch: gh pr checkout PR_NUMBER --repo ${owner}/${repo}
-    3. npm install
-    4. Run the full test suite: npm test — note exact pass/fail counts
-    5. Start the dev server: npm run dev (port 3000)
-    6. Verify EACH acceptance criterion explicitly — test it directly, don't assume
-    7. Check for regressions in existing features
-    8. Post QA report as a PR comment:
-       gh pr comment PR_NUMBER --repo ${owner}/${repo} --body-file /tmp/qa-report.md
+    1. Move card to QA (command above)
+    2. Get PR number: gh pr view "${prUrl}" --json number -q .number
+    3. Check out the branch: gh pr checkout PR_NUMBER --repo ${owner}/${repo}
+    4. npm install
+    5. Run the full test suite: npm test — note exact pass/fail counts
+    6. Start the dev server: npm run dev (port 3000)
+    7. Verify EACH acceptance criterion explicitly — test it directly, don't assume
+    8. Check for regressions in existing features
+    9. Post QA report as a PR comment:
+         gh pr comment PR_NUMBER --repo ${owner}/${repo} --body-file /tmp/qa-report.md
 
     For each criterion state exactly how you verified it and whether it passed.`,
     { label: 'qa-iter-' + iteration, phase: 'QA', schema: QA_SCHEMA }
@@ -408,7 +385,7 @@ _SDLC Orchestrator_`
 
   log('QA verdict (iter ' + iteration + '): ' + qa.verdict)
 
-  await postComment(task.issueNumber,
+  postComment(task.issueNumber,
     qa.passed
       ? `## QA passed (iteration ${iteration})
 
@@ -436,27 +413,23 @@ _QA Agent_`
     previousFindings = qa.failures || []
     if (iteration < MAX_ITERATIONS) {
       log('QA failed. Retrying build (iteration ' + (iteration + 1) + ')...')
-      await moveItem(task.itemId, statusOptions.inProgress, 'bounce-qa-to-in-progress')
       continue
     }
-    log('Max iterations reached after QA failure. Escalating.')
-    await moveItem(task.itemId, statusOptions.todo, 'escalate-qa-to-todo')
+    agent(moveCmd(task.itemId, statusOptions.todo), { label: 'escalate-qa-to-todo', phase: 'QA' })
     return { status: 'escalated', issue: task.issueNumber, pr: prUrl, failures: qa.failures }
   }
 
   // ── Done ───────────────────────────────────────────────────────────────────
   await agent(
-    `Merge the PR and close the issue.
+    `Merge the PR, move the kanban card to Done, and close the issue.
 
     1. Get PR number: gh pr view "${prUrl}" --json number -q .number
     2. Squash-merge: gh pr merge PR_NUMBER --squash --repo ${owner}/${repo}
-    3. Post closing comment:
-       gh issue comment ${task.issueNumber} --repo ${owner}/${repo} \\
-         --body "Implemented in ${prUrl} and merged after ${iteration} iteration(s). All ${spec.acceptanceCriteria.length} acceptance criteria verified by QA."`,
+    3. Move card to Done: ${moveCmd(task.itemId, statusOptions.done)}
+    4. Post closing comment:
+         gh issue comment ${task.issueNumber} --repo ${owner}/${repo} --body "Implemented in ${prUrl} and merged after ${iteration} iteration(s). All ${spec.acceptanceCriteria.length} acceptance criteria verified by QA."`,
     { label: 'merge-and-close', phase: 'QA' }
   )
-
-  await moveItem(task.itemId, statusOptions.done, 'move-to-done')
 
   log('Issue #' + task.issueNumber + ' complete in ' + iteration + ' iteration(s)!')
   return {
