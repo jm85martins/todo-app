@@ -10,8 +10,22 @@ export const meta = {
   ],
 }
 
-// Args: { projectNumber, owner, repo, specFieldId, statusFieldId, statusOptions }
-const { projectNumber, owner, repo, specFieldId, statusFieldId, statusOptions } = args
+// Config — hardcoded defaults for this repo; pass args to override any value
+const cfg = args || {}
+const projectNumber  = cfg.projectNumber  || 1
+const owner          = cfg.owner          || 'jm85martins'
+const repo           = cfg.repo           || 'todo-app'
+const specFieldId    = cfg.specFieldId    || 'PVTF_lAHOAIQdQ84BcYfJzhXB1vg'
+const statusFieldId  = cfg.statusFieldId  || 'PVTSSF_lAHOAIQdQ84BcYfJzhXBvtY'
+const statusOptions  = cfg.statusOptions  || {
+  todo:         '61e4505c',
+  discovery:    'b2945f80',
+  readyToBuild: '47fc9ee4',
+  inProgress:   'df73e18b',
+  review:       '98236657',
+  qa:           'a19c13b3',
+  done:         '189078dd',
+}
 
 const MAX_ITERATIONS = 3
 
