@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TodoItem } from "@/components/todo-item";
-import type { Todo } from "@/types/todo";
+import type { Todo, UpdateTodoInput } from "@/types/todo";
 
 type FilterType = "all" | "active" | "completed";
 
@@ -11,6 +11,7 @@ interface TodoListProps {
   todos: Todo[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (id: string, input: UpdateTodoInput) => void;
   onClearCompleted: () => void;
   completedCount: number;
   pendingCount: number;
@@ -20,6 +21,7 @@ export function TodoList({
   todos,
   onToggle,
   onDelete,
+  onEdit,
   onClearCompleted,
   completedCount,
   pendingCount,
@@ -85,7 +87,7 @@ export function TodoList({
         {filteredTodos.length > 0 ? (
           filteredTodos.map((todo) => (
             <div key={todo.id} role="listitem">
-              <TodoItem todo={todo} onToggle={onToggle} onDelete={onDelete} />
+              <TodoItem todo={todo} onToggle={onToggle} onDelete={onDelete} onEdit={onEdit} />
             </div>
           ))
         ) : (

@@ -9,6 +9,7 @@ export default function HomePage() {
   const {
     todos,
     addTodo,
+    updateTodo,
     toggleTodo,
     deleteTodo,
     clearCompleted,
@@ -29,6 +30,7 @@ export default function HomePage() {
               todos={todos}
               onToggle={toggleTodo}
               onDelete={deleteTodo}
+              onEdit={updateTodo}
               onClearCompleted={clearCompleted}
               completedCount={completedCount}
               pendingCount={pendingCount}
