@@ -11,6 +11,7 @@ import type { CreateTodoInput, Priority } from "@/types/todo";
 
 interface AddTodoFormProps {
   onAdd: (input: CreateTodoInput) => void;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 const priorityOptions: { value: Priority; label: string }[] = [
@@ -19,13 +20,14 @@ const priorityOptions: { value: Priority; label: string }[] = [
   { value: "high", label: "High" },
 ];
 
-export function AddTodoForm({ onAdd }: AddTodoFormProps) {
+export function AddTodoForm({ onAdd, inputRef }: AddTodoFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [isExpanded, setIsExpanded] = useState(false);
   const [dueDate, setDueDate] = useState("");
   const [label, setLabel] = useState("");
+  const [category, setCategory] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,12 +39,14 @@ export function AddTodoForm({ onAdd }: AddTodoFormProps) {
       priority,
       dueDate: dueDate || undefined,
       label: label || undefined,
+      category: category || undefined,
     });
     setTitle("");
     setDescription("");
     setPriority("medium");
     setDueDate("");
     setLabel("");
+    setCategory("");
     setIsExpanded(false);
   };
 
@@ -50,6 +54,7 @@ export function AddTodoForm({ onAdd }: AddTodoFormProps) {
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="flex gap-2">
         <Input
+          ref={inputRef}
           placeholder="Add a new todo..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -63,7 +68,7 @@ export function AddTodoForm({ onAdd }: AddTodoFormProps) {
       </div>
 
       {isExpanded && (
-        <div className="space-y-3 glass rounded-2xl p-4">
+        <div className="space-y-3 glass-card rounded-2xl p-4 animate-scale-in">
           <div className="space-y-1">
             <Label htmlFor="description">Description (optional)</Label>
             <Textarea
@@ -123,6 +128,16 @@ export function AddTodoForm({ onAdd }: AddTodoFormProps) {
             />
           </div>
 
+          <div className="space-y-1">
+            <Label htmlFor="category">Category</Label>
+            <Input
+              id="category"
+              placeholder="Category (optional)"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            />
+          </div>
+
           <div className="flex justify-end gap-2">
             <Button
               type="button"
@@ -136,7 +151,7 @@ export function AddTodoForm({ onAdd }: AddTodoFormProps) {
               type="submit"
               size="sm"
               disabled={!title.trim()}
-              className="rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white border-0"
+              className="gradient-primary text-white border-0 rounded-xl"
             >
               Add Todo
             </Button>

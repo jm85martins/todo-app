@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/sidebar";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { StatsBar } from "@/components/stats-bar";
 import { CommandPalette } from "@/components/command-palette";
+import { QuickAddModal } from "@/components/quick-add-modal";
 import { useTodos } from "@/hooks/use-todos";
 
 export default function HomePage() {
@@ -20,6 +21,7 @@ export default function HomePage() {
     clearCompleted,
     completedCount,
     pendingCount,
+    todayCompletedCount,
   } = useTodos();
 
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
@@ -28,6 +30,7 @@ export default function HomePage() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const prevPendingRef = useRef(pendingCount);
+  const addTitleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (pendingCount === 0 && todos.length > 0 && prevPendingRef.current > 0) {
@@ -74,7 +77,11 @@ export default function HomePage() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
-        <DashboardHeader pendingCount={pendingCount} />
+        <DashboardHeader
+          pendingCount={pendingCount}
+          todayCompletedCount={todayCompletedCount}
+          onQuickAdd={() => addTitleInputRef.current?.focus()}
+        />
         <StatsBar
           pendingCount={pendingCount}
           completedCount={completedCount}
@@ -92,7 +99,7 @@ export default function HomePage() {
             className="w-full rounded-full border border-input bg-background px-5 h-10 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
 
-          <AddTodoForm onAdd={addTodo} />
+          <AddTodoForm onAdd={addTodo} inputRef={addTitleInputRef} />
 
           <TodoList
             todos={todos}
@@ -118,6 +125,9 @@ export default function HomePage() {
         onDelete={deleteTodo}
       />
 
+      {/* Quick add modal */}
+      <QuickAddModal onAdd={addTodo} />
+
       {/* Confetti burst when all tasks are done */}
       {showConfetti && (
         <span
@@ -131,8 +141,8 @@ export default function HomePage() {
       {/* Mobile FAB */}
       <button
         type="button"
-        aria-label="Open navigation"
-        onClick={() => setMobileNavOpen(true)}
+        aria-label="Quick add task"
+        onClick={() => addTitleInputRef.current?.focus()}
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Menu className="h-6 w-6" />

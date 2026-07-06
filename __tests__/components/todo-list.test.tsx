@@ -122,7 +122,7 @@ describe("TodoList", () => {
       />
     );
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "Sort tasks" }), "priority");
+    await user.click(screen.getByRole("option", { name: "Priority" }));
     expect(onSortChange).toHaveBeenCalledWith("priority");
   });
 });

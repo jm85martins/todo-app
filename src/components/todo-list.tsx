@@ -67,6 +67,12 @@ export function TodoList({
     return b.createdAt.getTime() - a.createdAt.getTime();
   });
 
+  const SORT_OPTIONS: { value: SortBy; label: string }[] = [
+    { value: "createdAt", label: "Date" },
+    { value: "priority", label: "Priority" },
+    { value: "dueDate", label: "Due Date" },
+  ];
+
   return (
     <div className="space-y-4 animate-fade-up" style={{ animationDelay: "200ms" }}>
       {/* Controls */}
@@ -75,25 +81,37 @@ export function TodoList({
           {pendingCount} {pendingCount === 1 ? "item" : "items"} left
         </p>
 
-        <select
+        <div
+          role="group"
           aria-label="Sort tasks"
-          value={sortBy}
-          onChange={(e) => onSortChange(e.target.value as SortBy)}
-          className="text-xs rounded-md border border-input bg-background px-2 py-1 text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="flex items-center gap-1 rounded-lg bg-muted p-1"
         >
-          <option value="createdAt">Date added</option>
-          <option value="priority">Priority</option>
-          <option value="dueDate">Due date</option>
-        </select>
+          {SORT_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              role="option"
+              aria-selected={sortBy === opt.value}
+              onClick={() => onSortChange(opt.value)}
+              className={
+                sortBy === opt.value
+                  ? "rounded-md bg-background px-2.5 py-1 text-xs font-medium shadow-sm text-foreground"
+                  : "rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+              }
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
 
         {completedCount > 0 && (
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={onClearCompleted}
-            className="text-muted-foreground"
+            className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive"
           >
-            Clear completed
+            Clear completed ({completedCount})
           </Button>
         )}
       </div>
@@ -101,26 +119,33 @@ export function TodoList({
       {/* Todo items */}
       {sorted.length > 0 ? (
         <div className="space-y-2" role="list" aria-label="Todo list">
-          {sorted.map((todo) => (
-            <div key={todo.id} role="listitem">
+          {sorted.map((todo, index) => (
+            <div
+              key={todo.id}
+              role="listitem"
+              className="animate-fade-up"
+              style={{ animationDelay: `${index * 30}ms` }}
+            >
               <TodoItem todo={todo} onToggle={onToggle} onDelete={onDelete} onEdit={onEdit} />
             </div>
           ))}
         </div>
       ) : (
         <div className="py-16 flex flex-col items-center gap-3 text-muted-foreground">
-          <svg
-            width="80"
-            height="80"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="hsl(var(--primary))"
-            strokeWidth="1.5"
-          >
-            <rect x="8" y="2" width="8" height="4" rx="1" />
-            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-            <path d="M9 12l2 2 4-4" />
-          </svg>
+          <div className="h-16 w-16 rounded-2xl gradient-primary flex items-center justify-center">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="1.5"
+            >
+              <rect x="8" y="2" width="8" height="4" rx="1" />
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+          </div>
           <p className="text-sm font-medium">No tasks here yet</p>
           <p className="text-xs">Add your first task above</p>
         </div>

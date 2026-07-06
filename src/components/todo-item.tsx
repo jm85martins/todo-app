@@ -26,7 +26,9 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
   const [editPriority, setEditPriority] = useState<Priority>(todo.priority);
   const [editDueDate, setEditDueDate] = useState(todo.dueDate ?? "");
   const [editLabel, setEditLabel] = useState(todo.label ?? "");
+  const [editCategory, setEditCategory] = useState(todo.category ?? "");
   const [isPopping, setIsPopping] = useState(false);
+  const [isFlashing, setIsFlashing] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -41,6 +43,7 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
     setEditPriority(todo.priority);
     setEditDueDate(todo.dueDate ?? "");
     setEditLabel(todo.label ?? "");
+    setEditCategory(todo.category ?? "");
     setIsEditing(true);
   };
 
@@ -52,6 +55,7 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
       priority: editPriority,
       dueDate: editDueDate || undefined,
       label: editLabel || undefined,
+      category: editCategory || undefined,
     });
     setIsEditing(false);
   };
@@ -72,6 +76,8 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
     onToggle(todo.id);
     setIsPopping(true);
     setTimeout(() => setIsPopping(false), 250);
+    setIsFlashing(true);
+    setTimeout(() => setIsFlashing(false), 400);
   };
 
   const labelBadgeVariant = todo.label
@@ -84,13 +90,19 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
       )
     : null;
 
+  const isOverdue =
+    !todo.completed &&
+    !!todo.dueDate &&
+    todo.dueDate < new Date().toISOString().slice(0, 10);
+
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-3 rounded-xl bg-card shadow-sm hover:shadow-md transition-shadow pl-5 pr-4 py-4",
-        todo.completed && !isEditing && "opacity-40"
+        "group relative flex items-start gap-3 rounded-xl bg-card shadow-card hover:shadow-card-md transition-all duration-200 pl-5 pr-4 py-4",
+        todo.completed && !isEditing && "opacity-60 bg-muted/30",
+        isFlashing && "bg-emerald-500/10"
       )}
-      data-testid="todo-item"
+      data-testid={isOverdue ? "todo-item-overdue" : "todo-item"}
     >
       {/* Priority bar */}
       <div
@@ -99,7 +111,7 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
       />
 
       {isEditing ? (
-        <div className="min-w-0 flex-1 space-y-3">
+        <div className="min-w-0 flex-1 space-y-3 animate-scale-in">
           <Input
             ref={titleInputRef}
             value={editTitle}
@@ -152,6 +164,15 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
               placeholder="Label (optional)"
               value={editLabel}
               onChange={(e) => setEditLabel(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Input
+              id="edit-category-input"
+              placeholder="Category (optional)"
+              aria-label="Edit category"
+              value={editCategory}
+              onChange={(e) => setEditCategory(e.target.value)}
             />
           </div>
           <div className="flex justify-end gap-2">
@@ -212,7 +233,7 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
                 }).format(todo.createdAt)}
               </span>
               {formattedDueDate && (
-                <span className="text-xs text-muted-foreground">
+                <span className={cn("text-xs", isOverdue ? "text-destructive" : "text-muted-foreground")}>
                   Due {formattedDueDate}
                 </span>
               )}
@@ -225,7 +246,7 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground opacity-50 transition-opacity hover:opacity-100"
+            className="h-8 w-8 shrink-0 text-muted-foreground opacity-50 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
             onClick={handleEditStart}
             aria-label={`Edit "${todo.title}"`}
           >
@@ -235,7 +256,7 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground opacity-50 transition-opacity hover:opacity-100"
+            className="h-8 w-8 shrink-0 text-muted-foreground opacity-50 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
             onClick={() => onDelete(todo.id)}
             aria-label={`Delete "${todo.title}"`}
           >

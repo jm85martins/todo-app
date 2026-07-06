@@ -137,4 +137,44 @@ describe("useTodos", () => {
     expect(result.current.completedCount).toBe(1);
     expect(result.current.pendingCount).toBe(2);
   });
+
+  it("toggleTodo sets completedAt to a Date when marking complete", () => {
+    const { result } = renderHook(() => useTodos());
+
+    act(() => {
+      result.current.addTodo({ title: "Complete me" });
+    });
+
+    const id = result.current.todos[0].id;
+
+    act(() => {
+      result.current.toggleTodo(id);
+    });
+
+    expect(result.current.todos[0].completed).toBe(true);
+    expect(result.current.todos[0].completedAt).toBeInstanceOf(Date);
+  });
+
+  it("toggleTodo clears completedAt when marking incomplete", () => {
+    const { result } = renderHook(() => useTodos());
+
+    act(() => {
+      result.current.addTodo({ title: "Toggle back" });
+    });
+
+    const id = result.current.todos[0].id;
+
+    act(() => {
+      result.current.toggleTodo(id);
+    });
+
+    expect(result.current.todos[0].completedAt).toBeInstanceOf(Date);
+
+    act(() => {
+      result.current.toggleTodo(id);
+    });
+
+    expect(result.current.todos[0].completed).toBe(false);
+    expect(result.current.todos[0].completedAt).toBeUndefined();
+  });
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { ListTodo, Circle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,11 +16,12 @@ interface SidebarProps {
 const navItems: {
   value: FilterType;
   label: string;
+  shortcut: string;
   Icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { value: "all", label: "All Tasks", Icon: ListTodo },
-  { value: "active", label: "Active", Icon: Circle },
-  { value: "completed", label: "Completed", Icon: CheckCircle2 },
+  { value: "all", label: "All Tasks", shortcut: "1", Icon: ListTodo },
+  { value: "active", label: "Active", shortcut: "2", Icon: Circle },
+  { value: "completed", label: "Completed", shortcut: "3", Icon: CheckCircle2 },
 ];
 
 export function Sidebar({
@@ -33,6 +35,19 @@ export function Sidebar({
     if (value === "completed") return completedCount;
     return pendingCount + completedCount;
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+      const active = document.activeElement;
+      if (active !== document.body && active !== null) return;
+      if (e.key === "1") onFilterChange("all");
+      else if (e.key === "2") onFilterChange("active");
+      else if (e.key === "3") onFilterChange("completed");
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onFilterChange]);
 
   return (
     <nav
@@ -52,7 +67,7 @@ export function Sidebar({
 
       {/* Nav items */}
       <div className="flex-1 px-2 lg:px-3 space-y-1">
-        {navItems.map(({ value, label, Icon }) => {
+        {navItems.map(({ value, label, shortcut, Icon }) => {
           const isActive = activeFilter === value;
           const count = getCount(value);
           return (
@@ -86,9 +101,16 @@ export function Sidebar({
               >
                 {count}
               </span>
+              <span className="hidden lg:block text-xs text-white/30">[{shortcut}]</span>
             </button>
           );
         })}
+      </div>
+
+      {/* Sticky bottom */}
+      <div className="px-4 py-4 lg:px-6 flex items-center justify-between">
+        <span className="text-xs text-white/30">v0.1</span>
+        <span className="text-xs text-white/30">&#8984;K</span>
       </div>
     </nav>
   );

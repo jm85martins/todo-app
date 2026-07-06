@@ -46,11 +46,16 @@ export function useTodos(initialTodos: Todo[] = []) {
 
   const toggleTodo = useCallback((id: string): void => {
     setTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === id
-          ? { ...todo, completed: !todo.completed, updatedAt: new Date() }
-          : todo
-      )
+      prev.map((todo) => {
+        if (todo.id !== id) return todo;
+        const nowCompleted = !todo.completed;
+        return {
+          ...todo,
+          completed: nowCompleted,
+          updatedAt: new Date(),
+          completedAt: nowCompleted ? new Date() : undefined,
+        };
+      })
     );
   }, []);
 
@@ -61,6 +66,13 @@ export function useTodos(initialTodos: Todo[] = []) {
   const completedCount = todos.filter((t) => t.completed).length;
   const pendingCount = todos.filter((t) => !t.completed).length;
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayCompletedCount = todos.filter(
+    (t) =>
+      t.completedAt instanceof Date &&
+      t.completedAt.toISOString().slice(0, 10) === todayStr
+  ).length;
+
   return {
     todos,
     addTodo,
@@ -70,5 +82,6 @@ export function useTodos(initialTodos: Todo[] = []) {
     clearCompleted,
     completedCount,
     pendingCount,
+    todayCompletedCount,
   };
 }
