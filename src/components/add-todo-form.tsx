@@ -24,15 +24,25 @@ export function AddTodoForm({ onAdd }: AddTodoFormProps) {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [dueDate, setDueDate] = useState("");
+  const [label, setLabel] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    onAdd({ title, description: description || undefined, priority });
+    onAdd({
+      title,
+      description: description || undefined,
+      priority,
+      dueDate: dueDate || undefined,
+      label: label || undefined,
+    });
     setTitle("");
     setDescription("");
     setPriority("medium");
+    setDueDate("");
+    setLabel("");
     setIsExpanded(false);
   };
 
@@ -45,7 +55,7 @@ export function AddTodoForm({ onAdd }: AddTodoFormProps) {
           onChange={(e) => setTitle(e.target.value)}
           onFocus={() => setIsExpanded(true)}
           aria-label="Todo title"
-          className="flex-1 h-11 rounded-xl"
+          className="flex-1 rounded-full border-2 focus:border-primary transition-colors h-12 px-5"
         />
         <Button type="submit" disabled={!title.trim()} aria-label="Add" className="rounded-full">
           <Plus className="h-4 w-4" />
@@ -53,7 +63,7 @@ export function AddTodoForm({ onAdd }: AddTodoFormProps) {
       </div>
 
       {isExpanded && (
-        <div className="space-y-3 rounded-xl bg-muted/50 p-4">
+        <div className="space-y-3 glass rounded-2xl p-4">
           <div className="space-y-1">
             <Label htmlFor="description">Description (optional)</Label>
             <Textarea
@@ -91,6 +101,28 @@ export function AddTodoForm({ onAdd }: AddTodoFormProps) {
             </div>
           </div>
 
+          <div className="space-y-1">
+            <Label htmlFor="due-date">Due date</Label>
+            <input
+              id="due-date"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              aria-label="Due date"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="label">Label</Label>
+            <Input
+              id="label"
+              placeholder="Label (optional)"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+            />
+          </div>
+
           <div className="flex justify-end gap-2">
             <Button
               type="button"
@@ -100,7 +132,12 @@ export function AddTodoForm({ onAdd }: AddTodoFormProps) {
             >
               Cancel
             </Button>
-            <Button type="submit" size="sm" disabled={!title.trim()}>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={!title.trim()}
+              className="rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white border-0"
+            >
               Add Todo
             </Button>
           </div>

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, GripVertical } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Todo, Priority, UpdateTodoInput } from "@/types/todo";
 
@@ -16,11 +17,16 @@ interface TodoItemProps {
   onEdit: (id: string, input: UpdateTodoInput) => void;
 }
 
+const BADGE_VARIANTS = ["default", "secondary", "outline", "secondary", "default"] as const;
+
 export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(todo.title);
   const [editDescription, setEditDescription] = useState(todo.description ?? "");
   const [editPriority, setEditPriority] = useState<Priority>(todo.priority);
+  const [editDueDate, setEditDueDate] = useState(todo.dueDate ?? "");
+  const [editLabel, setEditLabel] = useState(todo.label ?? "");
+  const [isPopping, setIsPopping] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -33,6 +39,8 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
     setEditTitle(todo.title);
     setEditDescription(todo.description ?? "");
     setEditPriority(todo.priority);
+    setEditDueDate(todo.dueDate ?? "");
+    setEditLabel(todo.label ?? "");
     setIsEditing(true);
   };
 
@@ -42,6 +50,8 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
       title: editTitle.trim(),
       description: editDescription.trim() || undefined,
       priority: editPriority,
+      dueDate: editDueDate || undefined,
+      label: editLabel || undefined,
     });
     setIsEditing(false);
   };
@@ -58,15 +68,36 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
     }
   };
 
+  const handleToggle = () => {
+    onToggle(todo.id);
+    setIsPopping(true);
+    setTimeout(() => setIsPopping(false), 250);
+  };
+
+  const labelBadgeVariant = todo.label
+    ? BADGE_VARIANTS[todo.label.charCodeAt(0) % 5]
+    : "default";
+
+  const formattedDueDate = todo.dueDate
+    ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(
+        new Date(todo.dueDate + "T00:00:00")
+      )
+    : null;
+
   return (
     <div
       className={cn(
-        "group flex items-start gap-3 rounded-xl border border-l-4 bg-card p-3.5 transition-all",
+        "group relative flex items-start gap-3 rounded-xl bg-card shadow-sm hover:shadow-md transition-shadow pl-5 pr-4 py-4",
         todo.completed && !isEditing && "opacity-40"
       )}
-      style={{ borderLeftColor: `hsl(var(--priority-${todo.priority}))` }}
       data-testid="todo-item"
     >
+      {/* Priority bar */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
+        style={{ backgroundColor: `hsl(var(--priority-${todo.priority}))` }}
+      />
+
       {isEditing ? (
         <div className="min-w-0 flex-1 space-y-3">
           <Input
@@ -107,6 +138,22 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
               </button>
             ))}
           </div>
+          <div className="space-y-1">
+            <input
+              type="date"
+              value={editDueDate}
+              onChange={(e) => setEditDueDate(e.target.value)}
+              aria-label="Due date"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+          <div className="space-y-1">
+            <Input
+              placeholder="Label (optional)"
+              value={editLabel}
+              onChange={(e) => setEditLabel(e.target.value)}
+            />
+          </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" size="sm" onClick={handleCancel}>
               Cancel
@@ -123,11 +170,14 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
         </div>
       ) : (
         <>
+          {/* Drag handle */}
+          <GripVertical className="h-4 w-4 opacity-0 group-hover:opacity-100 mt-0.5 text-muted-foreground shrink-0" />
+
           <Checkbox
             id={`todo-${todo.id}`}
             checked={todo.completed}
-            onCheckedChange={() => onToggle(todo.id)}
-            className="mt-0.5"
+            onCheckedChange={handleToggle}
+            className={cn("mt-0.5", isPopping && "animate-check-pop")}
             aria-label={`Mark "${todo.title}" as ${todo.completed ? "incomplete" : "complete"}`}
           />
 
@@ -148,7 +198,7 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
               </p>
             )}
 
-            <div className="mt-1.5 flex items-center gap-2">
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
               <span
                 className="inline-block h-2 w-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: `hsl(var(--priority-${todo.priority}))` }}
@@ -161,6 +211,14 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
                   day: "numeric",
                 }).format(todo.createdAt)}
               </span>
+              {formattedDueDate && (
+                <span className="text-xs text-muted-foreground">
+                  Due {formattedDueDate}
+                </span>
+              )}
+              {todo.label && (
+                <Badge variant={labelBadgeVariant}>{todo.label}</Badge>
+              )}
             </div>
           </div>
 

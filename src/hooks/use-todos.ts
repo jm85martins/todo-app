@@ -20,6 +20,8 @@ export function useTodos(initialTodos: Todo[] = []) {
       priority: input.priority ?? "medium",
       createdAt: now,
       updatedAt: now,
+      dueDate: input.dueDate,
+      label: input.label,
     };
     setTodos((prev) => [todo, ...prev]);
     return todo;
