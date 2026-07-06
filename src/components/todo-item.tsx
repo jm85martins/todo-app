@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -16,15 +15,6 @@ interface TodoItemProps {
   onDelete: (id: string) => void;
   onEdit: (id: string, input: UpdateTodoInput) => void;
 }
-
-const priorityVariant: Record<
-  Priority,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  low: "outline",
-  medium: "secondary",
-  high: "destructive",
-};
 
 export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -71,9 +61,10 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
   return (
     <div
       className={cn(
-        "group flex items-start gap-3 rounded-lg border bg-card p-4 transition-opacity",
-        todo.completed && !isEditing && "opacity-60"
+        "group flex items-start gap-3 rounded-xl border border-l-4 bg-card p-3.5 transition-all",
+        todo.completed && !isEditing && "opacity-40"
       )}
+      style={{ borderLeftColor: `hsl(var(--priority-${todo.priority}))` }}
       data-testid="todo-item"
     >
       {isEditing ? (
@@ -100,14 +91,18 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
                 key={p}
                 type="button"
                 onClick={() => setEditPriority(p)}
-                className={[
-                  "rounded-md px-3 py-1 text-sm font-medium transition-colors",
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium transition-all",
                   editPriority === p
-                    ? "bg-primary text-primary-foreground"
-                    : "border bg-background hover:bg-accent",
-                ].join(" ")}
+                    ? "ring-2 ring-offset-1"
+                    : "opacity-60 hover:opacity-100"
+                )}
                 aria-pressed={editPriority === p}
               >
+                <span
+                  className="inline-block h-2 w-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: `hsl(var(--priority-${p}))` }}
+                />
                 {p.charAt(0).toUpperCase() + p.slice(1)}
               </button>
             ))}
@@ -154,9 +149,12 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
             )}
 
             <div className="mt-1.5 flex items-center gap-2">
-              <Badge variant={priorityVariant[todo.priority]} className="text-xs">
-                {todo.priority}
-              </Badge>
+              <span
+                className="inline-block h-2 w-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: `hsl(var(--priority-${todo.priority}))` }}
+                aria-label={`Priority: ${todo.priority}`}
+                role="img"
+              />
               <span className="text-xs text-muted-foreground">
                 {new Intl.DateTimeFormat("en-US", {
                   month: "short",
@@ -169,7 +167,7 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+            className="h-8 w-8 shrink-0 text-muted-foreground opacity-50 transition-opacity hover:opacity-100"
             onClick={handleEditStart}
             aria-label={`Edit "${todo.title}"`}
           >
@@ -179,7 +177,7 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+            className="h-8 w-8 shrink-0 text-muted-foreground opacity-50 transition-opacity hover:opacity-100"
             onClick={() => onDelete(todo.id)}
             aria-label={`Delete "${todo.title}"`}
           >

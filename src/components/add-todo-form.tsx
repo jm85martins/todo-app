@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import type { CreateTodoInput, Priority } from "@/types/todo";
 
 interface AddTodoFormProps {
@@ -44,15 +45,15 @@ export function AddTodoForm({ onAdd }: AddTodoFormProps) {
           onChange={(e) => setTitle(e.target.value)}
           onFocus={() => setIsExpanded(true)}
           aria-label="Todo title"
-          className="flex-1"
+          className="flex-1 h-11 rounded-xl"
         />
-        <Button type="submit" disabled={!title.trim()} aria-label="Add">
+        <Button type="submit" disabled={!title.trim()} aria-label="Add" className="rounded-full">
           <Plus className="h-4 w-4" />
         </Button>
       </div>
 
       {isExpanded && (
-        <div className="space-y-3 rounded-md border bg-card p-4">
+        <div className="space-y-3 rounded-xl bg-muted/50 p-4">
           <div className="space-y-1">
             <Label htmlFor="description">Description (optional)</Label>
             <Textarea
@@ -72,14 +73,18 @@ export function AddTodoForm({ onAdd }: AddTodoFormProps) {
                   key={opt.value}
                   type="button"
                   onClick={() => setPriority(opt.value)}
-                  className={[
-                    "rounded-md px-3 py-1 text-sm font-medium transition-colors",
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium transition-all",
                     priority === opt.value
-                      ? "bg-primary text-primary-foreground"
-                      : "border bg-background hover:bg-accent",
-                  ].join(" ")}
+                      ? "ring-2 ring-offset-1"
+                      : "opacity-60 hover:opacity-100"
+                  )}
                   aria-pressed={priority === opt.value}
                 >
+                  <span
+                    className="inline-block h-2 w-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: `hsl(var(--priority-${opt.value}))` }}
+                  />
                   {opt.label}
                 </button>
               ))}
