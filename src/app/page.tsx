@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Menu } from "lucide-react";
 import { AddTodoForm } from "@/components/add-todo-form";
 import { TodoList, type FilterType, type SortBy } from "@/components/todo-list";
@@ -26,6 +26,17 @@ export default function HomePage() {
   const [sortBy, setSortBy] = useState<SortBy>("createdAt");
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const prevPendingRef = useRef(pendingCount);
+
+  useEffect(() => {
+    if (pendingCount === 0 && todos.length > 0 && prevPendingRef.current > 0) {
+      setShowConfetti(true);
+      const timer = setTimeout(() => setShowConfetti(false), 700);
+      return () => clearTimeout(timer);
+    }
+    prevPendingRef.current = pendingCount;
+  }, [pendingCount, todos.length]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -106,6 +117,16 @@ export default function HomePage() {
         onToggle={toggleTodo}
         onDelete={deleteTodo}
       />
+
+      {/* Confetti burst when all tasks are done */}
+      {showConfetti && (
+        <span
+          aria-hidden="true"
+          className="animate-confetti fixed inset-0 pointer-events-none z-50 flex items-center justify-center text-6xl"
+        >
+          🎉
+        </span>
+      )}
 
       {/* Mobile FAB */}
       <button
