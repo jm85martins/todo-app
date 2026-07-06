@@ -29,7 +29,13 @@ describe("TodoItem", () => {
 
   it("renders the priority badge", () => {
     render(<TodoItem todo={baseTodo} onToggle={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} />);
-    expect(screen.getByText("high")).toBeInTheDocument();
+    expect(screen.getByLabelText("Priority: high")).toBeInTheDocument();
+  });
+
+  it("edit and delete buttons are visible without hover", () => {
+    render(<TodoItem todo={baseTodo} onToggle={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} />);
+    const deleteBtn = screen.getByRole("button", { name: /delete/i });
+    expect(deleteBtn).not.toHaveClass("opacity-0");
   });
 
   it("shows the checkbox as unchecked when todo is not completed", () => {

@@ -1,6 +1,5 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddTodoForm } from "@/components/add-todo-form";
 import { TodoList } from "@/components/todo-list";
 import { useTodos } from "@/hooks/use-todos";
@@ -18,25 +17,24 @@ export default function HomePage() {
   } = useTodos();
 
   return (
-    <main className="min-h-screen bg-background p-4 sm:p-8">
-      <div className="mx-auto max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-3xl font-bold">Todo App</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <AddTodoForm onAdd={addTodo} />
-            <TodoList
-              todos={todos}
-              onToggle={toggleTodo}
-              onDelete={deleteTodo}
-              onEdit={updateTodo}
-              onClearCompleted={clearCompleted}
-              completedCount={completedCount}
-              pendingCount={pendingCount}
-            />
-          </CardContent>
-        </Card>
+    <main className="min-h-screen bg-background flex items-start justify-center p-6 pt-16 sm:pt-20">
+      <div className="w-full max-w-xl space-y-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-black tracking-tight">My Tasks</h1>
+          <span className="text-xs text-muted-foreground">
+            {pendingCount} remaining · {completedCount} done
+          </span>
+        </div>
+        <AddTodoForm onAdd={addTodo} />
+        <TodoList
+          todos={todos}
+          onToggle={toggleTodo}
+          onDelete={deleteTodo}
+          onEdit={updateTodo}
+          onClearCompleted={clearCompleted}
+          completedCount={completedCount}
+          pendingCount={pendingCount}
+        />
       </div>
     </main>
   );
