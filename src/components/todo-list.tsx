@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TodoItem } from "@/components/todo-item";
+import { cn } from "@/lib/utils";
 import type { Todo, UpdateTodoInput } from "@/types/todo";
 
 type FilterType = "all" | "active" | "completed";
@@ -42,7 +44,8 @@ export function TodoList({
 
   if (todos.length === 0) {
     return (
-      <div className="py-12 text-center text-muted-foreground">
+      <div className="py-16 flex flex-col items-center gap-2 text-muted-foreground">
+        <CheckCircle2 className="h-8 w-8 opacity-30" />
         <p className="text-sm">No todos yet. Add one above!</p>
       </div>
     );
@@ -56,17 +59,22 @@ export function TodoList({
           {pendingCount} {pendingCount === 1 ? "item" : "items"} left
         </p>
 
-        <div className="flex gap-1" role="group" aria-label="Filter todos">
+        <div className="flex rounded-lg bg-muted p-0.5 gap-0.5" role="group" aria-label="Filter todos">
           {filterButtons.map(({ value, label }) => (
-            <Button
+            <button
               key={value}
-              variant={filter === value ? "default" : "ghost"}
-              size="sm"
+              type="button"
               onClick={() => setFilter(value)}
               aria-pressed={filter === value}
+              className={cn(
+                "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                filter === value
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
               {label}
-            </Button>
+            </button>
           ))}
         </div>
 
@@ -83,7 +91,7 @@ export function TodoList({
       </div>
 
       {/* Todo items */}
-      <div className="space-y-2" role="list" aria-label="Todo list">
+      <div className="space-y-1" role="list" aria-label="Todo list">
         {filteredTodos.length > 0 ? (
           filteredTodos.map((todo) => (
             <div key={todo.id} role="listitem">
