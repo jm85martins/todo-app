@@ -8,12 +8,16 @@ export interface Todo {
   priority: Priority;
   createdAt: Date;
   updatedAt: Date;
+  dueDate?: string;
+  label?: string;
 }
 
 export interface CreateTodoInput {
   title: string;
   description?: string;
   priority?: Priority;
+  dueDate?: string;
+  label?: string;
 }
 
 export interface UpdateTodoInput {
@@ -21,4 +25,6 @@ export interface UpdateTodoInput {
   description?: string;
   completed?: boolean;
   priority?: Priority;
+  dueDate?: string;
+  label?: string;
 }
